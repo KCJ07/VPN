@@ -13,7 +13,7 @@ int main(void)
     SetTargetFPS(60);
     
     // Connection type
-    int connectionType = 0;  // 0: Wireless, 1: Wired
+    int connectionType = 0;  // 0: UDP, 1: TCP
     int server = 0;
     bool connected = false;
     bool dropdownOpen = false;
@@ -29,37 +29,44 @@ int main(void)
         // Connection type section - Custom radio buttons
         DrawText("Connection Type:", 50, 100, 22, DARKGRAY);
         
-        // Custom radio button for Wireless
-        Rectangle wirelessRect = {250, 100, 20, 20};
-        DrawRectangleLines(wirelessRect.x, wirelessRect.y, wirelessRect.width, wirelessRect.height, DARKGRAY);
+        // Custom radio button for UDP
+        Rectangle UDPRect = {250, 100, 20, 20};
+        DrawRectangleLines(UDPRect.x, UDPRect.y, UDPRect.width, UDPRect.height, DARKGRAY);
         if (connectionType == 0) {
-            DrawCircle(wirelessRect.x + 10, wirelessRect.y + 10, 6, DARKBLUE);
+            DrawCircle(UDPRect.x + 10, UDPRect.y + 10, 6, DARKBLUE);
         }
-        if (CheckCollisionPointRec(GetMousePosition(), wirelessRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(GetMousePosition(), UDPRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             connectionType = 0;
         }
-        DrawText("Wireless", 280, 100, 20, DARKGRAY);
+        DrawText("UDP", 280, 100, 20, DARKGRAY);
         
         // Custom radio button for Wired
-        Rectangle wiredRect = {250, 130, 20, 20};
-        DrawRectangleLines(wiredRect.x, wiredRect.y, wiredRect.width, wiredRect.height, DARKGRAY);
+        Rectangle TCPRect = {250, 130, 20, 20};
+        DrawRectangleLines(TCPRect.x, TCPRect.y, TCPRect.width, TCPRect.height, DARKGRAY);
         if (connectionType == 1) {
-            DrawCircle(wiredRect.x + 10, wiredRect.y + 10, 6, DARKBLUE);
+            DrawCircle(TCPRect.x + 10, TCPRect.y + 10, 6, DARKBLUE);
         }
-        if (CheckCollisionPointRec(GetMousePosition(), wiredRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (CheckCollisionPointRec(GetMousePosition(), TCPRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             connectionType = 1;
         }
-        DrawText("Wired", 280, 130, 20, DARKGRAY);
-        
-        // Server selection section
-        DrawText("Select Server:", 50, 170, 22, DARKGRAY);
-        if (GuiDropdownBox((Rectangle){ 250, 170, 300, 35 }, 
-                          "US East Server;US West Server;Europe Server;Asia Server", 
-                          &server, dropdownOpen))
+        // Status display
+        if (connected)
         {
-            dropdownOpen = !dropdownOpen;
+            DrawRectangle(50, 310, 500, 60, Fade(GREEN, 0.2f));
+            DrawText("STATUS: CONNECTED", 180, 325, 25, GREEN);
+            
+            const char* connectionTypes[] = {"UDP", "TCP"};
+            const char* servers[] = {"TEST1", "TEST2", "TEST3"};
+            DrawText(TextFormat("Connected via %s to %s", connectionTypes[connectionType], servers[server]), 
+                    60, 360, 18, DARKGRAY);
+        }
+        else
+        {
+            DrawRectangle(50, 310, 500, 60, Fade(RED, 0.2f));
+            DrawText("STATUS: DISCONNECTED", 160, 325, 25, RED);
         }
         
+        EndDrawing();
         // Connection buttons
         if (GuiButton((Rectangle){ 50, 240, 240, 50 }, "CONNECT")) 
         {
@@ -70,25 +77,19 @@ int main(void)
         {
             connected = false;
         }
+                DrawText("TCP", 280, 130, 20, DARKGRAY);
         
-        // Status display
-        if (connected)
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 27);
+        // Server selection section
+        DrawText("Select Server:", 50, 170, 22, DARKGRAY);
+        if (GuiDropdownBox((Rectangle){ 250, 170, 300, 35 }, 
+                          "TEST1;TEST2;TEST3", 
+                          &server, dropdownOpen))
         {
-            DrawRectangle(50, 310, 500, 60, Fade(GREEN, 0.2f));
-            DrawText("STATUS: CONNECTED", 180, 325, 32, GREEN);
-            
-            const char* connectionTypes[] = {"Wireless", "Wired"};
-            const char* servers[] = {"US East Server", "US West Server", "Europe Server", "Asia Server"};
-            DrawText(TextFormat("Connected via %s to %s", connectionTypes[connectionType], servers[server]), 
-                    60, 360, 18, DARKGRAY);
-        }
-        else
-        {
-            DrawRectangle(50, 310, 500, 60, Fade(RED, 0.2f));
-            DrawText("STATUS: DISCONNECTED", 160, 325, 32, RED);
+            dropdownOpen = !dropdownOpen;
         }
         
-        EndDrawing();
+
     }
     
     CloseWindow();
