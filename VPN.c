@@ -1,8 +1,8 @@
 /// Kevin Johanson CSC 213 Final Project
 
-#include "Resources/raylib/src/raylib.h" 
+#include "Resources/raylib-master/src/raylib.h" 
 #define RAYGUI_IMPLEMENTATION
-#include "Resources/raylib/raygui/src/raygui.h"
+#include "Resources/raygui-master/src/raygui.h"
 
 int main(void)
 {
