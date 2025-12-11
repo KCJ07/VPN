@@ -12,10 +12,9 @@ typedef struct packetQueue {
     int curSize; // current ammount of packets
     int head; // head index
     int tail; // tail index
-    pthread_mutex_t mutex; // thread for accessing queue
+    pthread_mutex_t mutex; // thread queue 
     pthread_cond_t notEmpty;
     pthread_cond_t notFull;
-    // sem_t semaphore; not sure about this 
     int queueID; // id for the current queue
 } packetQueue_t;
 
@@ -46,7 +45,7 @@ int queueInit(packetQueue_t **queue, int capacity, int queueID) {
     queueSpace->tail = 0;
     queueSpace->queueID = queueID; 
 
-    pthread_mutex_init(&queueSpace->mutex, NULL);     // Mutex for exclusive queue access
+    pthread_mutex_init(&queueSpace->mutex, NULL);     // Mutex for queue
 
     // cond_init are: A condition (short for "condition variable") is a synchronization
     // device that allows threads to suspend execution and relinquish the
@@ -58,24 +57,77 @@ int queueInit(packetQueue_t **queue, int capacity, int queueID) {
     return 0;
 }
 
-// push for our queue
+// pushes packet to the end of our queue
 int push(packetQueue_t *queue, packet_t **packet) {
+
+    //locks the queue while pushing to the thread
+    pthread_mutex_lock(queue);
+
+    //check if queue is full then wait if it is (gets rid of lock while waiting)
+    while (queue->size == queue->maxCapacity) {
+        //waits untill condition is met
+        pthread_cond_wait(&queue->notFull, &queue->mutex);
+        
+    }
+
+    //add packet to end of queue
+    queue->packets[queue->tail] = packet;
+
+    //update tail (circular queue)
+    queue->tail = (queue->tail + 1) % queue->capacity;
+
+    //update queueSize
+    queue->curSize = queue->curSize +1
     
+
+    pthread_cond_signal(&queue->notEmpty);
+
+    pthread_mutex_unlock(queue);
+
+    return 0;
 }
 
 
-// pop for our queue
+// pops the head of our queue
+// if queue is empty return ERROR (UP FOR DEBATE)
+// need to implement a timeout
 int pop(packetQueue_t *queue, packet_t **packet) {
 
+    //locks the queue while popping from the thread
+    pthread_mutex_lock(queue);
+
+    //checks to make sure queue is not empty 
+    // while it is wait till its not (this gets rid of lock while waiting)
+    while (queue->size == 0) {
+        pthread_cond_wait(&queue->not_empty, &queue->mutex); 
+    }
+    
+
+
+    // grab popped packet 
+    *packet = queue->packets[queue->head];
+    queue->packets[queue->head] = NULL;
+
+    // update queue indicies
+    queue->head = (queue->head + 1) % queue->capacity;
+    queue->tail = queue->tail - 1;
+
+    pthread_cond_signal(&queue->notFull);
+    pthread_mutex_unlock(queue);
+
+
+    return 0;
 }
 
-// implements non blocking thread communication for pop function
-// regualr Pop blocks forever if queue is emtpy
-int tryPop(packetQueue_t *queue, packet_t **packet, int timeout) {
-
-}
 
 // clears the queue
 int queueClear(packetQueue_t *queue) {
 
+    // frees thread variables
+    pthread_mutex_destroy(&queue->mutex);   
+    pthread_cond_destroy(&queue->notEmpty);  
+    pthread_cond_destroy(&queue->notFull);  
+
+    free(queue->packets);
+    free(queue);
 }
