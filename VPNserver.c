@@ -13,20 +13,28 @@
 // (incoming) reads from web -> encrypts data -> sends to client
 
 #include "VPNtun.c"
-#include "queue.c"
-
+#include "VPNpacketqueue.c"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 // client structure containing all info on each client
 typedef struct client{
     bool connected;
     pthread_t clientThread;
-    sockaddr_in_t clientAddr;
+    sockaddr_in clientAddr;
     vpn_ctx_t VPN; 
 }client_t;
 
 // list of clients struct
 typedef struct {
-    client_ctx_t **clients;
+    client_t **clients;
     int maxClients;
     int numClients;
     pthread_mutex_t clientsMutex;
@@ -80,21 +88,21 @@ void *startClient(void *arg) {
 
 int main(int argc, char *argv[]) {
 
-    server_ctx_t server;
+    server_t server;
     int sockfd;
 
     memset(&server, 0, sizeof(server));
     server.maxClients = 10;
-    server.clients = malloc(sizeof(client_ctx_t *) * server.maxClients);
+    server.clients = malloc(sizeof(client_t *) * server.maxClients);
     pthread_mutex_init(&server.clientsMutex, NULL);
 
     // creating socket
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    struct sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(5000);
+    struct sockaddr_in serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serverAddr.sin_port = htons(5000);
 
     bind(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 
@@ -108,7 +116,7 @@ int main(int argc, char *argv[]) {
         char buffer[1024];
 
 
-        int len = recvfrom(sockfd, bugger, sizeof(buffer), 0, (struct sockaddr *)&clientADdr, &addrLen);
+        int len = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&clientAddr, &addrLen);
         
         if (len > 0) {
             //create new client info
