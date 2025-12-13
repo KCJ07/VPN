@@ -1,47 +1,97 @@
 // Kevin Johanson
-// Thread Safe Packet queue for VPN 
-// FIFO queue logic
+// creates a virutal TUN interface to be able to capture packets
+// only handles IP packets
+//
 
-#include <stdio.h>
-#include <pthread.h>
 
-// structure for queue
-typedef struct packetQueue {
-    packet_t **packets; // array of pointers to packets
-    int capacity; // maximumum queue size
-    int size; // current ammount of packets
-    int head;
-    int tail;
-    pthread_mutex_t mutex; // thread for accessing queue
-    pthread_cond_t notEmpty;
-    pthread_cond_t notFull;
-    // sem_t semaphore; not sure about this 
-    int queueID; // id for the current queue
-} packetQueue_t;
+#include <net/if.h>
 
-//initalize multi thread packet queue
-int queueInit(packetQueue_t **queue, int capacity, int queueID) {
+// creates a virtual network/ TUN device 
+// returns TUN file descripter
+int createTUN(*devName) {
+    int fd; 
+    struct ifreq ifr; // struct used by icotl() system
 
+    // opens TUN driver with reading and writing priveledges 
+    if ((fd = open("/dev/net/tun", O_RDWR)) < 0) {
+        perror("opening TUN file descriptor error");
+        return -1;
+    }
+
+    // configure ifreq flags (not rlly sure if this is right)
+    ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+
+    // actually creates the TUN device with given parameters
+    if (ioctl(fd, TUNSETIFF, (void *)&ifr) < 0) {
+        perror("ioctl error");
+        close(fd);  
+        return -1;
+    }
+
+    strncpy(ifr.ifr_name, devName, IFNAMSIZ);
+
+    return fd;
 }
 
-// push for our queue
-int push(packetQueue_t *queue, packet_t **packet) {
-    
+// configures all the settings for our TUN device
+// IP address, Netmask, MTU
+void TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
+
+    // make UDP socket for icotl()
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    struct ifreq ifr;          
+    struct sockaddr_in addr;   // struct for IP and Netmask
+
+    strncpy(ifr.ifr_name, TUNname, IFNAMSIZ);
+
+    // set ip address to ipv4 config 
+    addr.sin_family = AF_INET; 
+
+
+    inet_pton(AF_INET, ip, &addr.sin_addr);
+
+    // sets socket address in ifr
+    ifr.ifr_addr = *(struct sockaddr *)&addr;
+
+    // sets ip address of the TUN interface
+    if (ioctl(sock, SIOCSIFADDR, &ifr) < 0) {
+        perror("SIOCSIFADDR");
+        close(sock);
+        return -1;
+    }
+        
+    // MTU config
+    ifr.ifr_mtu = MTU;
+    ioctl(sock, SIOCSIFMTU, &ifr) 
+
+    // checks to see if flags are running?
+    if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
+        perror("SIOCGIFFLAGS");
+        close(sock);
+        return -1;
+    }    
+
+    ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
+
+    // set new flags after modifying them
+    if (ioctl(sock, SIOCSIFFLAGS, &ifr) < 0) {
+        perror("SIOCSIFFLAGS");
+        close(sock);
+        return -1;
+    }
+    close(sock);
+    return 0;
 }
 
-
-// pop for our queue
-int pop(packetQueue_t *queue, packet_t **packet) {
-
+// Reads packets from our Virtual TUN interface 
+void readTUN(int TUNfd, char *buffer, int size) {
+    read(TUNfd, buffer, size);
+    return; 
 }
 
-// implements non blocking thread communication for pop function
-// regualr Pop blocks forever if queue is emtpy
-int tryPop(packetQueue_t *queue, packet_t **packet, int timeout) {
-
-}
-
-// clears the queue
-int queueClear(packetQueue_t *queue) {
-
+// re-writes our network packet from our TUN interface into our network packet stack
+void writeTUN(int TUNfd, char *buffer, int size) {
+    write(TUNfd, buffer, size);
+    return;
 }
