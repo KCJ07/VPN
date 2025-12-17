@@ -22,38 +22,38 @@ typedef struct packetQueue {
 int queueInit(packetQueue_t **queue, int capacity, int queueID) {
 
     // malloc space for struct
-    packetQueue_t *queueSpace= malloc(sizeof(packetQueue_t))
-    if (!queueSpace) { // checks if malloc failed
+    packetQueue_t *q = malloc(sizeof(packetQueue_t));
+    if (!q) { // checks if malloc failed
         perror("Failed to Malloc"); 
-        return;
+        return 1;
     }
 
     //malloc space for packet pointer array
-    queueSpace->packets = malloc(sizeof (packet_t *) * capacity);
-    if (!queueSpace->packets) { // checks if malloc failed
+    q->packets = malloc(sizeof (packet_t *) * capacity);
+    if (!q->packets) { // checks if malloc failed
         perror("Failed to Malloc"); 
-        return;
+        return 1;
     }
 
     // sets array of pointers to packets to all 0 
     memset(q->packets, 0, sizeof(packet_t *) * capacity);
 
     //initialze rest of struct
-    queueSpace->maxCapacity = capacity;
-    queueSpace->size = 0;
-    queueSpace->head = 0;
-    queueSpace->tail = 0;
-    queueSpace->queueID = queueID; 
+    q->maxCapacity = capacity;
+    q->curSize = 0;
+    q->head = 0;
+    q->tail = 0;
+    q->queueID = queueID; 
 
-    pthread_mutex_init(&queueSpace->mutex, NULL);     // Mutex for queue
+    pthread_mutex_init(&q->mutex, NULL);     // Mutex for queue
 
     // cond_init are: A condition (short for "condition variable") is a synchronization
     // device that allows threads to suspend execution and relinquish the
     // processors until some predicate on shared data is satisfied.
-    pthread_cond_init(&queueSpace->notEmpty, NULL);  // variable for when queue has data
-    pthread_cond_init(&queueSpace->notFull, NULL);   // variable for when queue has space
+    pthread_cond_init(&q->notEmpty, NULL);  // variable for when queue has data
+    pthread_cond_init(&q->notFull, NULL);   // variable for when queue has space
 
-    *queue = queueSpace;
+    *queue = q;
     return 0;
 }
 
@@ -61,28 +61,28 @@ int queueInit(packetQueue_t **queue, int capacity, int queueID) {
 int push(packetQueue_t *queue, packet_t **packet) {
 
     //locks the queue while pushing to the thread
-    pthread_mutex_lock(queue);
+    pthread_mutex_lock(&queue->mutex);
 
     //check if queue is full then wait if it is (gets rid of lock while waiting)
-    while (queue->size == queue->maxCapacity) {
+    while (queue->curSize == queue->maxCapacity) {
         //waits untill condition is met
         pthread_cond_wait(&queue->notFull, &queue->mutex);
         
     }
 
     //add packet to end of queue
-    queue->packets[queue->tail] = packet;
+    queue->packets[queue->tail] = *packet;
 
     //update tail (circular queue)
-    queue->tail = (queue->tail + 1) % queue->capacity;
+    queue->tail = (queue->tail + 1) % queue->maxCapacity;
 
     //update queueSize
-    queue->curSize = queue->curSize +1
+    queue->curSize = queue->curSize +1;
     
 
     pthread_cond_signal(&queue->notEmpty);
 
-    pthread_mutex_unlock(queue);
+    pthread_mutex_unlock(&queue->mutex);
 
     return 0;
 }
@@ -94,12 +94,12 @@ int push(packetQueue_t *queue, packet_t **packet) {
 int pop(packetQueue_t *queue, packet_t **packet) {
 
     //locks the queue while popping from the thread
-    pthread_mutex_lock(queue);
+    pthread_mutex_lock(&queue->mutex);
 
     //checks to make sure queue is not empty 
     // while it is wait till its not (this gets rid of lock while waiting)
-    while (queue->size == 0) {
-        pthread_cond_wait(&queue->not_empty, &queue->mutex); 
+    while (queue->curSize == 0) {
+        pthread_cond_wait(&queue->notEmpty, &queue->mutex); 
     }
     
 
@@ -109,11 +109,11 @@ int pop(packetQueue_t *queue, packet_t **packet) {
     queue->packets[queue->head] = NULL;
 
     // update queue indicies
-    queue->head = (queue->head + 1) % queue->capacity;
+    queue->head = (queue->head + 1) % queue->maxCapacity;
     queue->tail = queue->tail - 1;
 
     pthread_cond_signal(&queue->notFull);
-    pthread_mutex_unlock(queue);
+    pthread_mutex_unlock(&queue->mutex);
 
 
     return 0;

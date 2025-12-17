@@ -4,11 +4,16 @@
 //
 
 
-#include <net/if.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 // creates a virtual network/ TUN device 
 // returns TUN file descripter
-int createTUN(*devName) {
+int createTUN(char *devName) {
     int fd; 
     struct ifreq ifr; // struct used by icotl() system
 
@@ -20,6 +25,7 @@ int createTUN(*devName) {
 
     // configure ifreq flags (not rlly sure if this is right)
     ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+    strncpy(ifr.ifr_name, devName, IFNAMSIZ);
 
     // actually creates the TUN device with given parameters
     if (ioctl(fd, TUNSETIFF, (void *)&ifr) < 0) {
@@ -35,7 +41,7 @@ int createTUN(*devName) {
 
 // configures all the settings for our TUN device
 // IP address, Netmask, MTU
-void TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
+int TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
 
     // make UDP socket for icotl()
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -63,7 +69,7 @@ void TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
         
     // MTU config
     ifr.ifr_mtu = MTU;
-    ioctl(sock, SIOCSIFMTU, &ifr) 
+    ioctl(sock, SIOCSIFMTU, &ifr); 
 
     // checks to see if flags are running?
     if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
@@ -80,18 +86,18 @@ void TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
         close(sock);
         return -1;
     }
+    
     close(sock);
     return 0;
 }
 
 // Reads packets from our Virtual TUN interface 
-void readTUN(int TUNfd, char *buffer, int size) {
-    read(TUNfd, buffer, size);
-    return; 
+int readTUN(int TUNfd, unsigned char *buffer, int size) {
+    return(read(TUNfd, buffer, size));
+ 
 }
 
 // re-writes our network packet from our TUN interface into our network packet stack
-void writeTUN(int TUNfd, char *buffer, int size) {
-    write(TUNfd, buffer, size);
-    return;
+int writeTUN(int TUNfd, unsigned char *buffer, int size) {
+    return(write(TUNfd, buffer, size));
 }

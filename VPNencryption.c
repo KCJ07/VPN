@@ -7,10 +7,11 @@
 #include <string.h>
 #include <stdint.h>
 
-#define PACCKET_MAX_SIZE 2048
+#define PACKET_MAX_SIZE 2048
+#define AES_KEY_SIZE 32  // 256-bit key
 
 //packet struct
-typdef struct packet {
+typedef struct packet {
     uint8_t data[PACKET_MAX_SIZE];
     int length;
     struct sockaddr_in addr;
@@ -50,7 +51,7 @@ int decryptPacket(cryptoInfo_t *crypto, packet_t *packet) {
 }
 
 //generates pre determined key (TODO: random) 
-int makeKey(cryptoInfo_t *crypto) {
+int makeKey(uint8_t *keyOut, int size) {
 
     // what most encryption algorithms like AES use as a key
     uint8_t key[32] = {
@@ -59,14 +60,14 @@ int makeKey(cryptoInfo_t *crypto) {
     17, 18, 19, 20, 21, 22, 23, 24,
     25, 26, 27, 28, 29, 30, 31, 32 };
 
-    crypto->key = key;
+    memcpy(keyOut, key, size);
 
     return 0;
 
 }
 
 // cleans cryptoInfo
-void cleanUP(cryptoInfo_t *crypto) {
+void encryptCleanUP(cryptoInfo_t *crypto) {
     memset(crypto->key, 0, AES_KEY_SIZE); 
     crypto->init = 0;
 }
