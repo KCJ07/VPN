@@ -2,6 +2,8 @@
 // Thread Safe Packet queue for VPN 
 // FIFO queue logic
 
+#include <time.h>
+#include <errno.h>
 #include <stdio.h>
 #include <pthread.h>
 
@@ -98,10 +100,19 @@ int pop(packetQueue_t *queue, packet_t **packet) {
 
     //checks to make sure queue is not empty 
     // while it is wait till its not (this gets rid of lock while waiting)
+    // Use timed wait instead of infinite wait to avoid deadlock
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    ts.tv_sec += 1; // Wait max 1 second
+
     while (queue->curSize == 0) {
-        pthread_cond_wait(&queue->notEmpty, &queue->mutex); 
+        int ret = pthread_cond_timedwait(&queue->notEmpty, &queue->mutex, &ts);
+        if (ret == ETIMEDOUT) {
+            pthread_mutex_unlock(&queue->mutex);
+            *packet = NULL;
+            return -1; // Timeout
+        }
     }
-    
 
 
     // grab popped packet 
@@ -110,7 +121,7 @@ int pop(packetQueue_t *queue, packet_t **packet) {
 
     // update queue indicies
     queue->head = (queue->head + 1) % queue->maxCapacity;
-    queue->tail = queue->tail - 1;
+    queue->curSize = queue->curSize - 1;
 
     pthread_cond_signal(&queue->notFull);
     pthread_mutex_unlock(&queue->mutex);
