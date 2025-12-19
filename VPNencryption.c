@@ -8,16 +8,16 @@
 #include <stdint.h>
 
 #define PACKET_MAX_SIZE 2048
-#define AES_KEY_SIZE 32  // 256-bit key
+#define AES_KEY_SIZE 32  // 256-bit key standard
 
-//packet struct
+
 typedef struct packet {
     uint8_t data[PACKET_MAX_SIZE];
     int length;
     struct sockaddr_in addr;
 } packet_t;
 
-//encryption info
+
 typedef struct cryptInfo {
     // what most encryption algorithms like AES use as a key
     uint8_t key[AES_KEY_SIZE]; // shared key so we can encrypt and decrpyt packets
@@ -54,11 +54,7 @@ int decryptPacket(cryptoInfo_t *crypto, packet_t *packet) {
 int makeKey(uint8_t *keyOut, int size) {
 
     // what most encryption algorithms like AES use as a key
-    uint8_t key[32] = {
-    1, 2, 3, 4, 5, 6, 7, 8,
-    9, 10, 11, 12, 13, 14, 15, 16,
-    17, 18, 19, 20, 21, 22, 23, 24,
-    25, 26, 27, 28, 29, 30, 31, 32 };
+    uint8_t key[32] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,25, 26, 27, 28, 29, 30, 31, 32 };
 
     memcpy(keyOut, key, size);
 

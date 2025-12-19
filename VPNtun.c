@@ -67,11 +67,11 @@ int TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
         return -1;
     }
         
-    // MTU config
+
     ifr.ifr_mtu = MTU;
     ioctl(sock, SIOCSIFMTU, &ifr); 
 
-    // checks to see if flags are running?
+    // flags 
     if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
         perror("SIOCGIFFLAGS");
         close(sock);
@@ -80,7 +80,7 @@ int TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
 
     ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
 
-    // set new flags after modifying them
+
     if (ioctl(sock, SIOCSIFFLAGS, &ifr) < 0) {
         perror("SIOCSIFFLAGS");
         close(sock);
@@ -97,7 +97,7 @@ int readTUN(int TUNfd, unsigned char *buffer, int size) {
  
 }
 
-// re-writes our network packet from our TUN interface into our network packet stack
+
 int writeTUN(int TUNfd, unsigned char *buffer, int size) {
     return(write(TUNfd, buffer, size));
 }

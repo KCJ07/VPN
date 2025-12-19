@@ -11,13 +11,13 @@
 typedef struct packetQueue {
     packet_t **packets; // array of pointers to packets
     int maxCapacity; // maximumum queue size
-    int curSize; // current ammount of packets
-    int head; // head index
-    int tail; // tail index
-    pthread_mutex_t mutex; // thread queue 
+    int curSize; // current ammount of packets in queue
+    int head; 
+    int tail; 
+    pthread_mutex_t mutex; 
     pthread_cond_t notEmpty;
     pthread_cond_t notFull;
-    int queueID; // id for the current queue
+    int queueID; 
 } packetQueue_t;
 
 //initalize multi thread packet queue
@@ -36,8 +36,7 @@ int queueInit(packetQueue_t **queue, int capacity, int queueID) {
         perror("Failed to Malloc"); 
         return 1;
     }
-
-    // sets array of pointers to packets to all 0 
+ 
     memset(q->packets, 0, sizeof(packet_t *) * capacity);
 
     //initialze rest of struct
@@ -47,13 +46,11 @@ int queueInit(packetQueue_t **queue, int capacity, int queueID) {
     q->tail = 0;
     q->queueID = queueID; 
 
-    pthread_mutex_init(&q->mutex, NULL);     // Mutex for queue
+    pthread_mutex_init(&q->mutex, NULL); // Mutex/lock for queue
 
-    // cond_init are: A condition (short for "condition variable") is a synchronization
-    // device that allows threads to suspend execution and relinquish the
-    // processors until some predicate on shared data is satisfied.
-    pthread_cond_init(&q->notEmpty, NULL);  // variable for when queue has data
-    pthread_cond_init(&q->notFull, NULL);   // variable for when queue has space
+
+    pthread_cond_init(&q->notEmpty, NULL);  
+    pthread_cond_init(&q->notFull, NULL);  
 
     *queue = q;
     return 0;
@@ -62,8 +59,7 @@ int queueInit(packetQueue_t **queue, int capacity, int queueID) {
 // pushes packet to the end of our queue
 int push(packetQueue_t *queue, packet_t **packet) {
 
-    //locks the queue while pushing to the thread
-    pthread_mutex_lock(&queue->mutex);
+   pthread_mutex_lock(&queue->mutex);
 
     //check if queue is full then wait if it is (gets rid of lock while waiting)
     while (queue->curSize == queue->maxCapacity) {
@@ -72,13 +68,13 @@ int push(packetQueue_t *queue, packet_t **packet) {
         
     }
 
-    //add packet to end of queue
+
     queue->packets[queue->tail] = *packet;
 
     //update tail (circular queue)
     queue->tail = (queue->tail + 1) % queue->maxCapacity;
 
-    //update queueSize
+
     queue->curSize = queue->curSize +1;
     
 
@@ -92,7 +88,7 @@ int push(packetQueue_t *queue, packet_t **packet) {
 
 // pops the head of our queue
 // if queue is empty return ERROR (UP FOR DEBATE)
-// need to implement a timeout
+
 int pop(packetQueue_t *queue, packet_t **packet) {
 
     //locks the queue while popping from the thread
@@ -100,7 +96,6 @@ int pop(packetQueue_t *queue, packet_t **packet) {
 
     //checks to make sure queue is not empty 
     // while it is wait till its not (this gets rid of lock while waiting)
-    // Use timed wait instead of infinite wait to avoid deadlock
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     ts.tv_sec += 1; // Wait max 1 second
@@ -110,7 +105,7 @@ int pop(packetQueue_t *queue, packet_t **packet) {
         if (ret == ETIMEDOUT) {
             pthread_mutex_unlock(&queue->mutex);
             *packet = NULL;
-            return -1; // Timeout
+            return -1;
         }
     }
 
@@ -134,7 +129,7 @@ int pop(packetQueue_t *queue, packet_t **packet) {
 // clears the queue
 int queueClear(packetQueue_t *queue) {
 
-    // frees thread variables
+
     pthread_mutex_destroy(&queue->mutex);   
     pthread_cond_destroy(&queue->notEmpty);  
     pthread_cond_destroy(&queue->notFull);  
