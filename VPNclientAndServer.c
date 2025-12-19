@@ -357,6 +357,8 @@ VPNInfo_t global_vpn;
 
 // Main test runner
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
 
 
     vpnInit(&global_vpn);

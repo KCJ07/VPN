@@ -42,6 +42,7 @@ int createTUN(char *devName) {
 // configures all the settings for our TUN device
 // IP address, Netmask, MTU
 int TUNconfig( char *TUNname, char *ip, char *netmask, int MTU) {
+    (void) netmask; // stops warnings
 
     // make UDP socket for icotl()
     int sock = socket(AF_INET, SOCK_DGRAM, 0);

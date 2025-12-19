@@ -39,6 +39,8 @@ int InitEncryption(cryptoInfo_t *crypto, uint8_t *key) {
 // encrypts a packet
 // does nothing at the moment
 int encryptPacket(cryptoInfo_t *crypto, packet_t *packet) {
+    (void)crypto;
+    (void)packet;
 
     return 0;
 
@@ -47,6 +49,8 @@ int encryptPacket(cryptoInfo_t *crypto, packet_t *packet) {
 // decrypt a packet
 // does nothing at the moment
 int decryptPacket(cryptoInfo_t *crypto, packet_t *packet) {
+    (void)crypto;
+    (void)packet;
     return 0;
 }
 

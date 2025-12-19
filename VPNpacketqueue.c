@@ -136,4 +136,6 @@ int queueClear(packetQueue_t *queue) {
 
     free(queue->packets);
     free(queue);
+
+    return 0;
 }
